@@ -1,4 +1,3 @@
-
 // Global variables
 let searchOverheadTimeout;
 let searchLaborTimeout;
@@ -34,18 +33,30 @@ function resetLaborForm() {
     document.getElementById('labor_cancel_edit_button').classList.add('hidden');
 }
 
-// Format number function (consistent with bahan_baku.js)
+// Format number function with thousand separators, no decimals
 function formatNumber(num) {
-    return parseInt(num).toLocaleString('id-ID');
+    // Remove all non-digit characters
+    const cleanNum = num.toString().replace(/[^\d]/g, '');
+    if (cleanNum === '') return '';
+    
+    // Convert to integer and format with thousand separators
+    return parseInt(cleanNum).toLocaleString('id-ID');
+}
+
+// Parse formatted number back to integer
+function parseFormattedNumber(formattedNum) {
+    return formattedNum.replace(/[^\d]/g, '');
 }
 
 // Edit overhead
 function editOverhead(overhead) {
     document.getElementById('overhead_id_to_edit').value = overhead.id;
     document.getElementById('overhead_name').value = overhead.name;
-    // Format the amount value properly for editing
-    const amountValue = overhead.amount.toString().replace(/[^\d]/g, '');
+    
+    // Format the amount value properly for editing (remove decimals, add thousand separators)
+    const amountValue = Math.floor(parseFloat(overhead.amount));
     document.getElementById('overhead_amount').value = formatNumber(amountValue);
+    
     document.getElementById('overhead_description').value = overhead.description || '';
     document.getElementById('overhead_form_title').textContent = 'Edit Biaya Overhead';
     document.getElementById('overhead_submit_button').innerHTML = `
@@ -55,15 +66,20 @@ function editOverhead(overhead) {
         Update Overhead
     `;
     document.getElementById('overhead_cancel_edit_button').classList.remove('hidden');
+    
+    // Scroll to form
+    document.getElementById('overhead_form_title').scrollIntoView({ behavior: 'smooth' });
 }
 
 // Edit labor
 function editLabor(labor) {
     document.getElementById('labor_id_to_edit').value = labor.id;
     document.getElementById('labor_position_name').value = labor.position_name;
-    // Format the hourly rate value properly for editing
-    const rateValue = labor.hourly_rate.toString().replace(/[^\d]/g, '');
+    
+    // Format the hourly rate value properly for editing (remove decimals, add thousand separators)
+    const rateValue = Math.floor(parseFloat(labor.hourly_rate));
     document.getElementById('labor_hourly_rate').value = formatNumber(rateValue);
+    
     document.getElementById('labor_form_title').textContent = 'Edit Posisi Tenaga Kerja';
     document.getElementById('labor_submit_button').innerHTML = `
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -72,6 +88,9 @@ function editLabor(labor) {
         Update Posisi
     `;
     document.getElementById('labor_cancel_edit_button').classList.remove('hidden');
+    
+    // Scroll to form
+    document.getElementById('labor_form_title').scrollIntoView({ behavior: 'smooth' });
 }
 
 // Delete overhead
@@ -206,7 +225,7 @@ function loadLaborData(page = 1) {
 window.loadOverheadData = loadOverheadData;
 window.loadLaborData = loadLaborData;
 
-// Format currency input (consistent with bahan_baku.js)
+// Format currency input with automatic thousand separators
 document.addEventListener('DOMContentLoaded', function() {
     // Only load data via AJAX if URL contains reload parameter
     const urlParams = new URLSearchParams(window.location.search);
@@ -220,37 +239,53 @@ document.addEventListener('DOMContentLoaded', function() {
     const hourlyRateInput = document.getElementById('labor_hourly_rate');
 
     if (amountInput) {
-        // Format input saat user mengetik
+        // Format input saat user mengetik dengan thousand separators
         amountInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/[^\d]/g, '');
-            if (value) {
-                e.target.value = formatNumber(value);
-            }
+            const cursorPosition = e.target.selectionStart;
+            const oldValue = e.target.value;
+            const oldLength = oldValue.length;
+            
+            // Format the value
+            const formattedValue = formatNumber(e.target.value);
+            e.target.value = formattedValue;
+            
+            // Adjust cursor position
+            const newLength = formattedValue.length;
+            const lengthDiff = newLength - oldLength;
+            e.target.setSelectionRange(cursorPosition + lengthDiff, cursorPosition + lengthDiff);
         });
 
         // Convert ke number saat submit
         const overheadForm = amountInput.closest('form');
         if (overheadForm) {
             overheadForm.addEventListener('submit', function() {
-                amountInput.value = amountInput.value.replace(/[^\d]/g, '');
+                amountInput.value = parseFormattedNumber(amountInput.value);
             });
         }
     }
 
     if (hourlyRateInput) {
-        // Format input saat user mengetik
+        // Format input saat user mengetik dengan thousand separators
         hourlyRateInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/[^\d]/g, '');
-            if (value) {
-                e.target.value = formatNumber(value);
-            }
+            const cursorPosition = e.target.selectionStart;
+            const oldValue = e.target.value;
+            const oldLength = oldValue.length;
+            
+            // Format the value
+            const formattedValue = formatNumber(e.target.value);
+            e.target.value = formattedValue;
+            
+            // Adjust cursor position
+            const newLength = formattedValue.length;
+            const lengthDiff = newLength - oldLength;
+            e.target.setSelectionRange(cursorPosition + lengthDiff, cursorPosition + lengthDiff);
         });
 
         // Convert ke number saat submit
         const laborForm = hourlyRateInput.closest('form');
         if (laborForm) {
             laborForm.addEventListener('submit', function() {
-                hourlyRateInput.value = hourlyRateInput.value.replace(/[^\d]/g, '');
+                hourlyRateInput.value = parseFormattedNumber(hourlyRateInput.value);
             });
         }
     }
@@ -339,5 +374,17 @@ document.addEventListener('DOMContentLoaded', function() {
             // Reload page to show all data
             window.location.href = '/cornerbites-sia/pages/overhead_management.php';
         });
+    }
+
+    // Setup cancel edit button events
+    const overheadCancelBtn = document.getElementById('overhead_cancel_edit_button');
+    const laborCancelBtn = document.getElementById('labor_cancel_edit_button');
+
+    if (overheadCancelBtn) {
+        overheadCancelBtn.addEventListener('click', resetOverheadForm);
+    }
+
+    if (laborCancelBtn) {
+        laborCancelBtn.addEventListener('click', resetLaborForm);
     }
 });
