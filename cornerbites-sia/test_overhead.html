@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Overhead Formatting</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold mb-4">Test Format Number</h2>
+        
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Test Input (Ketik angka)</label>
+            <div class="relative">
+                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">Rp</span>
+                <input type="text" id="test-input" class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Ketik angka...">
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Coba ketik: 500000</p>
+        </div>
+
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Hasil Format</label>
+            <div class="p-3 bg-gray-50 rounded-lg">
+                <span id="result">-</span>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Raw Value (untuk submit)</label>
+            <div class="p-3 bg-gray-50 rounded-lg">
+                <span id="raw-value">-</span>
+            </div>
+        </div>
+
+        <button onclick="testEdit()" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700">
+            Test Edit Mode (1500000)
+        </button>
+    </div>
+
+    <script>
+        // Format number function with thousand separators, no decimals
+        function formatNumber(num) {
+            // Remove all non-digit characters
+            const cleanNum = num.toString().replace(/[^\d]/g, '');
+            if (cleanNum === '') return '';
+            
+            // Convert to integer and format with thousand separators using Indonesian locale
+            return parseInt(cleanNum).toLocaleString('id-ID');
+        }
+
+        // Parse formatted number back to integer
+        function parseFormattedNumber(formattedNum) {
+            return formattedNum.replace(/[^\d]/g, '');
+        }
+
+        // Enhanced input formatting with cursor position handling
+        function handleNumberInput(inputElement) {
+            inputElement.addEventListener('input', function(e) {
+                // Store cursor position
+                const cursorPosition = e.target.selectionStart;
+                const oldValue = e.target.value;
+                const oldLength = oldValue.length;
+                
+                // Get only digits
+                const digitsOnly = oldValue.replace(/[^\d]/g, '');
+                
+                // Format the number
+                let formattedValue = '';
+                if (digitsOnly !== '') {
+                    formattedValue = formatNumber(digitsOnly);
+                }
+                
+                // Update input value
+                e.target.value = formattedValue;
+                
+                // Update display
+                document.getElementById('result').textContent = formattedValue;
+                document.getElementById('raw-value').textContent = parseFormattedNumber(formattedValue);
+                
+                // Calculate new cursor position
+                const newLength = formattedValue.length;
+                const lengthDiff = newLength - oldLength;
+                const newCursorPosition = Math.max(0, cursorPosition + lengthDiff);
+                
+                // Set cursor position
+                setTimeout(() => {
+                    e.target.setSelectionRange(newCursorPosition, newCursorPosition);
+                }, 0);
+            });
+
+            // Handle paste events
+            inputElement.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                const digitsOnly = pastedText.replace(/[^\d]/g, '');
+                if (digitsOnly !== '') {
+                    e.target.value = formatNumber(digitsOnly);
+                    document.getElementById('result').textContent = formatNumber(digitsOnly);
+                    document.getElementById('raw-value').textContent = digitsOnly;
+                }
+            });
+
+            // Prevent non-numeric input
+            inputElement.addEventListener('keypress', function(e) {
+                // Allow: backspace, delete, tab, escape, enter
+                if ([8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
+                    // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                    (e.keyCode === 65 && e.ctrlKey === true) ||
+                    (e.keyCode === 67 && e.ctrlKey === true) ||
+                    (e.keyCode === 86 && e.ctrlKey === true) ||
+                    (e.keyCode === 88 && e.ctrlKey === true)) {
+                    return;
+                }
+                // Ensure that it is a number and stop the keypress
+                if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                    e.preventDefault();
+                }
+            });
+        }
+
+        function testEdit() {
+            const input = document.getElementById('test-input');
+            const testValue = 1500000;
+            input.value = formatNumber(testValue.toString());
+            document.getElementById('result').textContent = formatNumber(testValue.toString());
+            document.getElementById('raw-value').textContent = testValue.toString();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            const testInput = document.getElementById('test-input');
+            handleNumberInput(testInput);
+        });
+    </script>
+</body>
+</html>

@@ -35,9 +35,9 @@ function resetLaborForm() {
 
 // Format number function with thousand separators, no decimals
 function formatNumber(num) {
-    // Remove all non-digit characters
+    // Remove all non-digit characters first
     const cleanNum = num.toString().replace(/[^\d]/g, '');
-    if (cleanNum === '') return '';
+    if (cleanNum === '' || cleanNum === '0') return '';
     
     // Convert to integer and format with thousand separators using Indonesian locale
     return parseInt(cleanNum).toLocaleString('id-ID');
@@ -61,7 +61,7 @@ function handleNumberInput(inputElement) {
         
         // Format the number
         let formattedValue = '';
-        if (digitsOnly !== '') {
+        if (digitsOnly !== '' && digitsOnly !== '0') {
             formattedValue = formatNumber(digitsOnly);
         }
         
@@ -71,7 +71,10 @@ function handleNumberInput(inputElement) {
         // Calculate new cursor position
         const newLength = formattedValue.length;
         const lengthDiff = newLength - oldLength;
-        const newCursorPosition = Math.max(0, cursorPosition + lengthDiff);
+        let newCursorPosition = cursorPosition + lengthDiff;
+        
+        // Ensure cursor position is within bounds
+        newCursorPosition = Math.max(0, Math.min(newCursorPosition, formattedValue.length));
         
         // Set cursor position
         setTimeout(() => {
@@ -84,8 +87,10 @@ function handleNumberInput(inputElement) {
         e.preventDefault();
         const pastedText = (e.clipboardData || window.clipboardData).getData('text');
         const digitsOnly = pastedText.replace(/[^\d]/g, '');
-        if (digitsOnly !== '') {
+        if (digitsOnly !== '' && digitsOnly !== '0') {
             e.target.value = formatNumber(digitsOnly);
+        } else {
+            e.target.value = '';
         }
     });
 
@@ -304,8 +309,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Convert ke number saat submit
         const overheadForm = amountInput.closest('form');
         if (overheadForm) {
-            overheadForm.addEventListener('submit', function() {
-                amountInput.value = parseFormattedNumber(amountInput.value);
+            overheadForm.addEventListener('submit', function(e) {
+                // Convert formatted number back to raw number for submission
+                const rawValue = parseFormattedNumber(amountInput.value);
+                if (rawValue === '' || rawValue === '0') {
+                    e.preventDefault();
+                    alert('Jumlah biaya harus diisi dan lebih dari 0!');
+                    return false;
+                }
+                amountInput.value = rawValue;
             });
         }
     }
@@ -316,8 +328,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Convert ke number saat submit
         const laborForm = hourlyRateInput.closest('form');
         if (laborForm) {
-            laborForm.addEventListener('submit', function() {
-                hourlyRateInput.value = parseFormattedNumber(hourlyRateInput.value);
+            laborForm.addEventListener('submit', function(e) {
+                // Convert formatted number back to raw number for submission
+                const rawValue = parseFormattedNumber(hourlyRateInput.value);
+                if (rawValue === '' || rawValue === '0') {
+                    e.preventDefault();
+                    alert('Upah per jam harus diisi dan lebih dari 0!');
+                    return false;
+                }
+                hourlyRateInput.value = rawValue;
             });
         }
     }
@@ -415,14 +434,18 @@ document.addEventListener('DOMContentLoaded', function() {
     if (overheadCancelBtn) {
         overheadCancelBtn.addEventListener('click', function(e) {
             e.preventDefault();
+            e.stopPropagation();
             resetOverheadForm();
+            return false;
         });
     }
 
     if (laborCancelBtn) {
         laborCancelBtn.addEventListener('click', function(e) {
             e.preventDefault();
+            e.stopPropagation();
             resetLaborForm();
+            return false;
         });
     }
 });
