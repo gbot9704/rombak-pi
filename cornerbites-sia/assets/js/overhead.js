@@ -39,13 +39,72 @@ function formatNumber(num) {
     const cleanNum = num.toString().replace(/[^\d]/g, '');
     if (cleanNum === '') return '';
     
-    // Convert to integer and format with thousand separators
+    // Convert to integer and format with thousand separators using Indonesian locale
     return parseInt(cleanNum).toLocaleString('id-ID');
 }
 
 // Parse formatted number back to integer
 function parseFormattedNumber(formattedNum) {
     return formattedNum.replace(/[^\d]/g, '');
+}
+
+// Enhanced input formatting with cursor position handling
+function handleNumberInput(inputElement) {
+    inputElement.addEventListener('input', function(e) {
+        // Store cursor position
+        const cursorPosition = e.target.selectionStart;
+        const oldValue = e.target.value;
+        const oldLength = oldValue.length;
+        
+        // Get only digits
+        const digitsOnly = oldValue.replace(/[^\d]/g, '');
+        
+        // Format the number
+        let formattedValue = '';
+        if (digitsOnly !== '') {
+            formattedValue = formatNumber(digitsOnly);
+        }
+        
+        // Update input value
+        e.target.value = formattedValue;
+        
+        // Calculate new cursor position
+        const newLength = formattedValue.length;
+        const lengthDiff = newLength - oldLength;
+        const newCursorPosition = Math.max(0, cursorPosition + lengthDiff);
+        
+        // Set cursor position
+        setTimeout(() => {
+            e.target.setSelectionRange(newCursorPosition, newCursorPosition);
+        }, 0);
+    });
+
+    // Handle paste events
+    inputElement.addEventListener('paste', function(e) {
+        e.preventDefault();
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        const digitsOnly = pastedText.replace(/[^\d]/g, '');
+        if (digitsOnly !== '') {
+            e.target.value = formatNumber(digitsOnly);
+        }
+    });
+
+    // Prevent non-numeric input
+    inputElement.addEventListener('keypress', function(e) {
+        // Allow: backspace, delete, tab, escape, enter
+        if ([8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
+            // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+            (e.keyCode === 65 && e.ctrlKey === true) ||
+            (e.keyCode === 67 && e.ctrlKey === true) ||
+            (e.keyCode === 86 && e.ctrlKey === true) ||
+            (e.keyCode === 88 && e.ctrlKey === true)) {
+            return;
+        }
+        // Ensure that it is a number and stop the keypress
+        if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+            e.preventDefault();
+        }
+    });
 }
 
 // Edit overhead
@@ -55,7 +114,7 @@ function editOverhead(overhead) {
     
     // Format the amount value properly for editing (remove decimals, add thousand separators)
     const amountValue = Math.floor(parseFloat(overhead.amount));
-    document.getElementById('overhead_amount').value = formatNumber(amountValue);
+    document.getElementById('overhead_amount').value = formatNumber(amountValue.toString());
     
     document.getElementById('overhead_description').value = overhead.description || '';
     document.getElementById('overhead_form_title').textContent = 'Edit Biaya Overhead';
@@ -78,7 +137,7 @@ function editLabor(labor) {
     
     // Format the hourly rate value properly for editing (remove decimals, add thousand separators)
     const rateValue = Math.floor(parseFloat(labor.hourly_rate));
-    document.getElementById('labor_hourly_rate').value = formatNumber(rateValue);
+    document.getElementById('labor_hourly_rate').value = formatNumber(rateValue.toString());
     
     document.getElementById('labor_form_title').textContent = 'Edit Posisi Tenaga Kerja';
     document.getElementById('labor_submit_button').innerHTML = `
@@ -238,22 +297,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const amountInput = document.getElementById('overhead_amount');
     const hourlyRateInput = document.getElementById('labor_hourly_rate');
 
+    // Apply enhanced number formatting to inputs
     if (amountInput) {
-        // Format input saat user mengetik dengan thousand separators
-        amountInput.addEventListener('input', function(e) {
-            const cursorPosition = e.target.selectionStart;
-            const oldValue = e.target.value;
-            const oldLength = oldValue.length;
-            
-            // Format the value
-            const formattedValue = formatNumber(e.target.value);
-            e.target.value = formattedValue;
-            
-            // Adjust cursor position
-            const newLength = formattedValue.length;
-            const lengthDiff = newLength - oldLength;
-            e.target.setSelectionRange(cursorPosition + lengthDiff, cursorPosition + lengthDiff);
-        });
+        handleNumberInput(amountInput);
 
         // Convert ke number saat submit
         const overheadForm = amountInput.closest('form');
@@ -265,21 +311,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (hourlyRateInput) {
-        // Format input saat user mengetik dengan thousand separators
-        hourlyRateInput.addEventListener('input', function(e) {
-            const cursorPosition = e.target.selectionStart;
-            const oldValue = e.target.value;
-            const oldLength = oldValue.length;
-            
-            // Format the value
-            const formattedValue = formatNumber(e.target.value);
-            e.target.value = formattedValue;
-            
-            // Adjust cursor position
-            const newLength = formattedValue.length;
-            const lengthDiff = newLength - oldLength;
-            e.target.setSelectionRange(cursorPosition + lengthDiff, cursorPosition + lengthDiff);
-        });
+        handleNumberInput(hourlyRateInput);
 
         // Convert ke number saat submit
         const laborForm = hourlyRateInput.closest('form');
@@ -376,15 +408,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Setup cancel edit button events
+    // Setup cancel edit button events - FIXED
     const overheadCancelBtn = document.getElementById('overhead_cancel_edit_button');
     const laborCancelBtn = document.getElementById('labor_cancel_edit_button');
 
     if (overheadCancelBtn) {
-        overheadCancelBtn.addEventListener('click', resetOverheadForm);
+        overheadCancelBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            resetOverheadForm();
+        });
     }
 
     if (laborCancelBtn) {
-        laborCancelBtn.addEventListener('click', resetLaborForm);
+        laborCancelBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            resetLaborForm();
+        });
     }
 });
